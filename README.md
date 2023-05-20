@@ -30,6 +30,7 @@ Extraction of physical properties is available for:
 
 ## Usage
 
+The program is run from the terminal with the following arguments:
 ```
 python gaussian_results.py [-h] [-f] [--link1] [-c] [-l LABEL] [-n] [-e] [-o]
 ```
