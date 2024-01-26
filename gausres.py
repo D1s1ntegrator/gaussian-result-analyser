@@ -3,9 +3,19 @@ import argparse
 import numpy as np
 from utils.elements import atomnames2str
 from utils.utilities import transpose, iterskip, generate_paths, export_data
+from math import inf
 
 energy_headers = ("Filename",
                   "Energy, a.u.")
+
+
+homo_headers = ("Filename",
+                "Energy, a.u.")
+
+
+lumo_headers = ("Filename",
+                "Energy, a.u.")
+
 
 distance_headers = ("Filename",
                     "Atoms",
@@ -67,6 +77,18 @@ varies between files. Be careful!")
             export_data(get_labels(data),
                         get_energies(data),
                         head=energy_headers,
+                        path=path,
+                        overwrite=args.overwrite)
+
+        if event == "2":
+            if args.custom:
+                filename = input("Enter filename:")
+            else:
+                filename = "homo.txt"
+            path = os.path.join(args.folder, filename)
+            export_data(get_labels(data),
+                        get_homo(data),
+                        head=homo_headers,
                         path=path,
                         overwrite=args.overwrite)
 
@@ -278,9 +300,12 @@ class Gdata():
         self.atomnames = []
         self.energies = []
         self.steps = []
+        self.homo = []
+        self.lumo = []
         self.thermo = (None, ) * 8  # Needed for exporting.
         self.counter = (None, ) * 5  # Needed for exporting.
         doReadCrd = False
+        line_homo = None
         isAtomsOrdered = True
         # Skipping first lines, where link1 string may be.
         iterator = enumerate(file)
@@ -318,6 +343,18 @@ class Gdata():
             if line.startswith("Step number"):
                 line_list = line.split()
                 self.steps.append(int(line_list[2]) - 1)  # Pythonic counting.
+                continue
+
+            if line.startswith("Alpha  occ. eigenvalues"):
+                line_homo = line.split()
+                continue
+
+            if line.startswith("Alpha virt. eigenvalues"):
+                if line_homo is not None:
+                    line_lumo = line.split()
+                    self.homo.append(line_homo[-1])
+                    self.lumo.append(line_lumo[4])
+                    line_homo = None
                 continue
 
             if line.startswith("Zero-point correction="):
@@ -458,7 +495,15 @@ def get_atomnames(datalist, step=-1):
 
 
 def get_energies(datalist, step=-1):
-    return [d.energies[step] for d in datalist]
+    for d in datalist:
+        try:
+            yield d.energies[step]
+        except IndexError:
+            yield None
+
+
+def get_homo(datalist, step=-1):
+    return [d.homo[step] for d in datalist]
 
 
 def get_dihedrals(datalist, idx):
@@ -484,6 +529,7 @@ def ask_results():
     """
     result_choice_msg = "Select which results do you want to save:\n\
   1 - Ground state energies\n\
+  2 - Homo energies\n\
   3 - Thermo information\n\
   4 - Counterpoise information\n\
   5 - Distances\n\
@@ -492,7 +538,7 @@ def ask_results():
   q - Exit"
     # This part can be modified for adding new options for data export.
     print(result_choice_msg)
-    selection_choices = ["1", "3", "4", "5", "6", "8"]
+    selection_choices = ["1", "2", "3", "4", "5", "6", "8"]
     while True:
         inp = input().strip()
         if inp in selection_choices:

@@ -71,17 +71,19 @@ path. Cannot save.")
         else:
             break
         inp = input("Try again? (yes or no)\n")
-        if inp in ("y", "yes"):
+        if inp in ('y', 'yes'):
             continue
         else:
             return
 
     file = open(path, 'w')
     rows = transpose(columns)
-    head_space = "\t" * (len(columns) - len(head))
-    file.write(head_space + "\t".join(head) + "\n")
+    head_space = '\t' * (len(columns) - len(head) + 1)
+    file.write(head_space + '\t'.join(head) + '\n')
     for row in rows:
-        if not (None in row):
-            file.write("\t".join(map(str, row)) + "\n")
+        row = ({None: 'N/A'}.get(n, n) for n in row)
+        row = map(str, row)
+        row = '\t'.join(row)
+        file.write(row + '\n')
     file.close()
     print("Results saved.\n")
